@@ -53,7 +53,7 @@ export default function App() {
         {/* Header */}
         <header className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm sm:p-5">
           <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
-            E-Commerce Browser
+           New Looks Fashion
           </h2>
 
           <button
