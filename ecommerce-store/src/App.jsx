@@ -1,98 +1,135 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+import useProducts from "./hooks/useProduct";
+import useCart from "./hooks/useCart";
 
 import SearchBar from "./components/SearchBar";
 import CategoryFilter from "./components/CategoryFilter";
 import ProductGrid from "./components/ProductGrid";
 import ProductDetails from "./components/ProductDetails";
 import CartDrawer from "./components/CartDrawer";
+import StatusMessage from "./components/StatusMessage";
 
-import {
-  getAllProducts,
-  getCategories,
-  getProductsByCategory,
-  getProductById,
-} from "./api/productApi";
-
-
-import './App.css'
-
-function App() {
-
+export default function App() {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [toast, setToast] = useState("");
 
-  useEffect(() => {
-  async function testApi() {
-    try {
-      console.log("==== PHASE 2 API TEST START ====");
+  // Products (Phase 3)
+  const {
+    productsToShow,
+    categories,
+    selectedCategory,
+    setSelectedCategory,
+    searchText,
+    setSearchText,
+    loading,
+    error,
+  } = useProducts();
 
-      const products = await getAllProducts();
-      console.log("✅ getAllProducts:", products.length, "items");
-      console.log("Sample product:", products[0]);
+  // Cart (Phase 6)
+  const {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    increaseQty,
+    decreaseQty,
+    clearCart,
+    itemCount,
+    subtotal,
+  } = useCart();
 
-      const categories = await getCategories();
-      console.log("✅ getCategories:", categories);
+  // Toast helpers (Phase 7)
+  const showToast = (msg) => setToast(msg);
 
-      const firstCategory = categories[0];
-      const catProducts = await getProductsByCategory(firstCategory);
-      console.log(`✅ getProductsByCategory("${firstCategory}"):` , catProducts.length, "items");
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    showToast("Added to cart ✅");
+  };
 
-      const firstId = products[0]?.id;
-      const productById = await getProductById(firstId);
-      console.log(`✅ getProductById(${firstId}):`, productById);
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 font-sans sm:p-6">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <header className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+            E-Commerce Browser
+          </h2>
 
-      console.log("==== PHASE 2 API TEST END ====");
-    } catch (err) {
-      console.error("❌ API TEST FAILED:", err.message);
-    }
-  }
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+            type="button"
+          >
+            Open Cart ({itemCount})
+          </button>
+        </header>
 
-  testApi();
-}, []);
+        {/* Filters */}
+        <section className="mt-4 rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <SearchBar
+                value={searchText}
+                onChange={setSearchText}
+                onClear={() => setSearchText("")}
+              />
+            </div>
 
+            <CategoryFilter
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+        </section>
 
- return (
-  <div className="min-h-screen bg-gray-50 p-4 font-sans sm:p-6">
-    <header className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
-      <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
-        E-Commerce Browser
-      </h2>
+        {/* Products */}
+        <section className="mt-4">
+          {loading && (
+            <div className="rounded-xl bg-white p-4 text-gray-600 shadow-sm">
+              Loading products...
+            </div>
+          )}
 
-      <button
-        onClick={() => setIsCartOpen(true)}
-        className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 active:scale-[0.99]"
-      >
-        Open Cart
-      </button>
-    </header>
+          {error && (
+            <div className="rounded-xl bg-white p-4 text-red-600 shadow-sm">
+              {error}
+            </div>
+          )}
 
-    <section className="mt-4 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center">
-      <div className="flex-1">
-        <SearchBar value={""} onChange={() => {}} onClear={() => {}} />
+          {!loading && !error && (
+            <ProductGrid
+              products={productsToShow}
+              onSelectProduct={(id) => setSelectedProductId(id)}
+              onAddToCart={handleAddToCart}
+            />
+          )}
+        </section>
+
+        {/* Details modal */}
+        <ProductDetails
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+          onAddToCart={handleAddToCart}
+        />
+
+        {/* Cart drawer */}
+        <CartDrawer
+          open={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          items={cartItems}
+          itemCount={itemCount}
+          subtotal={subtotal}
+          onInc={increaseQty}
+          onDec={decreaseQty}
+          onRemove={removeFromCart}
+          onClear={clearCart}
+        />
+
+        {/* Toast */}
+        <StatusMessage message={toast} onClear={() => setToast("")} />
       </div>
-
-      <CategoryFilter categories={[]} selected={"all"} onSelect={() => {}} />
-    </section>
-
-    <main className="mt-4">
-      <ProductGrid
-        products={[]}
-        onSelectProduct={(id) => setSelectedProductId(id)}
-        onAddToCart={() => {}}
-      />
-    </main>
-
-    <div className="mt-4">
-      <ProductDetails
-        productId={selectedProductId}
-        onClose={() => setSelectedProductId(null)}
-        onAddToCart={() => {}}
-      />
     </div>
-
-    <CartDrawer open={isCartOpen} onClose={() => setIsCartOpen(false)} />
-  </div>
-);
-};
-
-export default App;
+  );
+}
